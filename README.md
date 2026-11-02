@@ -2,7 +2,7 @@
 
 This repository contains deployment configuration only: production Compose, a pull-based HMAC GitHub webhook receiver, deploy/migration scripts, and a non-secret `production-images.env` file pinning immutable image tags. Copy actual secret environment values into the VPS-provided `.env`; never commit them.
 
-The VPS needs read access to GHCR packages (`docker login ghcr.io` with a read-only package token) unless packages are deliberately published public. Admin's GitHub Actions image workflow also needs repository Variables for its public build inputs: Turnstile site key, Mapbox public token, GA measurement ID, VAPID public key, and R2 account/bucket identifiers. Keep all private credentials as Actions secrets or VPS environment values; none belong in image tags.
+The VPS has been verified to pull the SHA-pinned GHCR images anonymously. Admin's GitHub Actions image workflow needs repository Variables for its build inputs: R2 account/bucket identifiers are required for private media URLs; Mapbox public token, GA measurement ID, and VAPID public key enable their respective client features. Keep all private credentials as Actions secrets or VPS environment values; none belong in image tags.
 
 The service repositories publish independently to GHCR. VPS Compose runs Admin, RAG, and Presence as separate containers on private networks; Traefik exposes Admin and routes `/presence` to the WebSocket service. Admin owns Drizzle migrations. RAG bootstrap prepares the vector extension/schema before Admin migrations; RAG itself keeps its limited private Postgres access and uses Admin's internal API. Cron and notification dispatch remain lightweight Admin endpoint callers.
 
