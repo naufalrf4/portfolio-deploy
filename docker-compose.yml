@@ -1,0 +1,349 @@
+services:
+  admin:
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Jakarta
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST:-db}:5432/${POSTGRES_DB}
+      DIRECT_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST:-db}:5432/${POSTGRES_DB}
+      AUTH_TRUST_HOST: ${ADMIN_AUTH_TRUST_HOST:-true}
+      NEXTAUTH_SECRET: ${ADMIN_NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${ADMIN_PUBLIC_URL}
+      ADMIN_EMAILS: ${ADMIN_EMAILS}
+      ADMIN_INTERNAL_API_TOKEN: ${ADMIN_INTERNAL_API_TOKEN}
+      ADMIN_PUBLIC_API_ALLOWED_ORIGINS: ${ADMIN_PUBLIC_API_ALLOWED_ORIGINS}
+      RAG_INGEST_SERVICE_TOKEN: ${RAG_INGEST_SERVICE_TOKEN}
+      RAG_SERVICE_URL: http://rag:3005
+      RAG_SERVICE_TOKEN: ${RAG_SERVICE_TOKEN}
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=768
+      PORT: 3001
+      ADMIN_R2_ACCOUNT_ID: ${ADMIN_R2_ACCOUNT_ID}
+      ADMIN_R2_BUCKET_NAME: ${ADMIN_R2_BUCKET_NAME}
+      ADMIN_R2_ACCESS_KEY_ID: ${ADMIN_R2_ACCESS_KEY_ID}
+      ADMIN_R2_SECRET_ACCESS_KEY: ${ADMIN_R2_SECRET_ACCESS_KEY}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      EMAIL_FROM: ${EMAIL_FROM}
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${ADMIN_NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+      TURNSTILE_SECRET_KEY: ${ADMIN_TURNSTILE_SECRET_KEY}
+      TURNSTILE_HOSTNAMES: ${ADMIN_TURNSTILE_HOSTNAMES}
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${ADMIN_NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: ${ADMIN_NEXT_PUBLIC_GA_MEASUREMENT_ID}
+      GOOGLE_CLIENT_ID: ${ADMIN_GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${ADMIN_GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${ADMIN_GOOGLE_REDIRECT_URI}
+      GOOGLE_REFRESH_TOKEN: ${ADMIN_GOOGLE_REFRESH_TOKEN}
+      GA_PROPERTY_ID: ${ADMIN_GA_PROPERTY_ID}
+      GA_SERVICE_ACCOUNT: ${ADMIN_GA_SERVICE_ACCOUNT}
+      CRON_SECRET: ${ADMIN_CRON_SECRET}
+      TELEGRAM_BOT_TOKEN: ${ADMIN_TELEGRAM_BOT_TOKEN}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${ADMIN_NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${ADMIN_VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${ADMIN_VAPID_SUBJECT}
+    expose:
+    - '3001'
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:3001/').then(r=>{if(r.status>=500) throw new Error('unhealthy '+r.status)})
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    read_only: true
+    tmpfs:
+    - /tmp
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 1024m
+          cpus: '1.0'
+        reservations:
+          memory: 512m
+          cpus: '0.5'
+    networks:
+    - internal
+    - dokploy-network
+    labels:
+    - traefik.enable=true
+    - traefik.docker.network=dokploy-network
+    - traefik.http.routers.portfolio-admin-web.rule=Host(`${ADMIN_DOMAIN}`)
+    - traefik.http.routers.portfolio-admin-web.entrypoints=web
+    - traefik.http.routers.portfolio-admin-web.middlewares=portfolio-admin-https
+    - traefik.http.routers.portfolio-admin-web.service=portfolio-admin
+    - traefik.http.middlewares.portfolio-admin-https.redirectscheme.scheme=https
+    - traefik.http.routers.portfolio-admin-websecure.rule=Host(`${ADMIN_DOMAIN}`)
+    - traefik.http.routers.portfolio-admin-websecure.entrypoints=websecure
+    - traefik.http.routers.portfolio-admin-websecure.tls.certresolver=letsencrypt
+    - traefik.http.routers.portfolio-admin-websecure.service=portfolio-admin
+    - traefik.http.services.portfolio-admin.loadbalancer.server.port=3001
+    image: ${ADMIN_IMAGE:?set ADMIN_IMAGE}
+  admin-migrate:
+    profiles:
+    - ops
+    command:
+    - bun
+    - run
+    - db:migrate
+    environment:
+      TZ: Asia/Jakarta
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST:-db}:5432/${POSTGRES_DB}
+      DIRECT_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST:-db}:5432/${POSTGRES_DB}
+      AUTH_TRUST_HOST: ${ADMIN_AUTH_TRUST_HOST:-true}
+      NEXTAUTH_SECRET: ${ADMIN_NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${ADMIN_PUBLIC_URL}
+      ADMIN_EMAILS: ${ADMIN_EMAILS}
+      ADMIN_INTERNAL_API_TOKEN: ${ADMIN_INTERNAL_API_TOKEN}
+      ADMIN_PUBLIC_API_ALLOWED_ORIGINS: ${ADMIN_PUBLIC_API_ALLOWED_ORIGINS}
+      RAG_INGEST_SERVICE_TOKEN: ${RAG_INGEST_SERVICE_TOKEN}
+      RAG_SERVICE_URL: http://rag:3005
+      NODE_ENV: production
+      PORT: 3001
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      EMAIL_FROM: ${EMAIL_FROM}
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${ADMIN_NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+      TURNSTILE_SECRET_KEY: ${ADMIN_TURNSTILE_SECRET_KEY}
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${ADMIN_NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: ${ADMIN_NEXT_PUBLIC_GA_MEASUREMENT_ID}
+      GOOGLE_CLIENT_ID: ${ADMIN_GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${ADMIN_GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${ADMIN_GOOGLE_REDIRECT_URI}
+      GOOGLE_REFRESH_TOKEN: ${ADMIN_GOOGLE_REFRESH_TOKEN}
+      GA_PROPERTY_ID: ${ADMIN_GA_PROPERTY_ID}
+      GA_SERVICE_ACCOUNT: ${ADMIN_GA_SERVICE_ACCOUNT}
+    networks:
+    - dokploy-network
+    image: ${ADMIN_MIGRATOR_IMAGE:?set ADMIN_MIGRATOR_IMAGE}
+  admin-cron:
+    image: docker.io/library/node:22-bookworm-slim
+    restart: unless-stopped
+    depends_on:
+      admin:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Jakarta
+      CRON_SECRET: ${ADMIN_CRON_SECRET}
+      CRON_AT: ${ADMIN_CRON_AT:-02:00}
+    entrypoint:
+    - sh
+    - -c
+    command:
+    - "while :; do\n  now=$$(date +%s)\n  next=$$(date -d \"today $$CRON_AT\" +%s)\n  if [ \"$$next\" -le \"$$now\" ]; then\
+      \ next=$$(date -d \"tomorrow $$CRON_AT\" +%s); fi\n  echo \"[$$(date -Iseconds)] cleanup-chatlogs scheduled for $$(date\
+      \ -d @$$next -Iseconds)\"\n  sleep $$((next - now))\n  node -e 'Promise.all([\"cleanup-chatlogs\",\"cleanup-logs\"].map(function(path){return\
+      \ fetch(\"http://admin:3001/api/cron/\"+path,{method:\"POST\",headers:{authorization:\"Bearer \"+process.env.CRON_SECRET}}).then(function(r){return\
+      \ r.text().then(function(t){console.log(\"[\"+new Date().toISOString()+\"] \"+path+\" status=\"+r.status+\" \"+t.slice(0,200));if(!r.ok)\
+      \ throw new Error(path+\" status \"+r.status)})})})).catch(function(e){console.error(\"[\"+new Date().toISOString()+\"\
+      ] request failed: \"+e.message);process.exit(1)})' || echo \"[$$(date -Iseconds)] cleanup invocation failed; retrying\
+      \ next cycle\"\ndone\n"
+    read_only: true
+    tmpfs:
+    - /tmp
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    user: node
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+          cpus: '0.1'
+        reservations:
+          memory: 32m
+          cpus: '0.05'
+    networks:
+    - internal
+  notification-dispatch:
+    image: docker.io/library/node:22-bookworm-slim
+    restart: unless-stopped
+    depends_on:
+      admin:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Jakarta
+      CRON_SECRET: ${ADMIN_CRON_SECRET}
+    entrypoint:
+    - sh
+    - -c
+    command:
+    - "while :; do\n  node -e 'fetch(\"http://admin:3001/api/cron/dispatch-notifications\",{method:\"POST\",headers:{authorization:\"\
+      Bearer \"+process.env.CRON_SECRET}}).then(function(r){return r.text().then(function(t){console.log(\"[\"+new Date().toISOString()+\"\
+      ] status=\"+r.status+\" \"+t.slice(0,200));process.exit(r.ok?0:1)})}).catch(function(e){console.error(\"[\"+new Date().toISOString()+\"\
+      ] request failed: \"+e.message);process.exit(1)})' || echo \"[$$(date -Iseconds)] notification dispatch failed; retrying\
+      \ next cycle\"\n  sleep 60\ndone\n"
+    read_only: true
+    tmpfs:
+    - /tmp
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    user: node
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+          cpus: '0.1'
+        reservations:
+          memory: 32m
+          cpus: '0.05'
+    networks:
+    - internal
+  rag:
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Jakarta
+      APP_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3005
+      LOG_LEVEL: ${RAG_LOG_LEVEL}
+      RAG_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST:-db}:5432/${POSTGRES_DB}
+      ADMIN_API_URL: http://admin:3001
+      ADMIN_INTERNAL_API_TOKEN: ${ADMIN_INTERNAL_API_TOKEN}
+      RAG_INGEST_SERVICE_TOKEN: ${RAG_INGEST_SERVICE_TOKEN}
+      RAG_SERVICE_TOKEN: ${RAG_SERVICE_TOKEN}
+      OPENAI_API_KEY: ${RAG_OPENAI_API_KEY}
+      EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL}
+      EMBEDDING_DIMENSION: ${RAG_EMBEDDING_DIMENSION}
+      CHAT_MODEL: ${RAG_CHAT_MODEL}
+      CONTEXT_MODEL: ${RAG_CONTEXT_MODEL}
+      ADMIN_API_TIMEOUT_MS: ${RAG_ADMIN_API_TIMEOUT_MS}
+      CORS_ORIGINS: ${RAG_CORS_ORIGINS}
+      CHUNK_TARGET_TOKENS: ${RAG_CHUNK_TARGET_TOKENS}
+      CHUNK_OVERLAP_TOKENS: ${RAG_CHUNK_OVERLAP_TOKENS}
+      INGESTION_BATCH_SIZE: ${RAG_INGESTION_BATCH_SIZE}
+      RETRIEVAL_LIMIT: ${RAG_RETRIEVAL_LIMIT}
+      CHAT_HISTORY_LIMIT: ${RAG_CHAT_HISTORY_LIMIT}
+    expose:
+    - '3005'
+    healthcheck:
+      test:
+      - CMD
+      - bun
+      - -e
+      - fetch('http://127.0.0.1:3005/health').then(r=>{if(!r.ok) throw new Error('unhealthy '+r.status)})
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    read_only: true
+    tmpfs:
+    - /tmp
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+          cpus: '0.5'
+        reservations:
+          memory: 192m
+          cpus: '0.25'
+    depends_on:
+      admin:
+        condition: service_started
+    networks:
+    - internal
+    - dokploy-network
+    image: ${RAG_IMAGE:?set RAG_IMAGE}
+  rag-bootstrap:
+    command:
+    - bun
+    - run
+    - dist/db-bootstrap.js
+    environment:
+      TZ: Asia/Jakarta
+      APP_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3005
+      LOG_LEVEL: ${RAG_LOG_LEVEL}
+      RAG_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST:-db}:5432/${POSTGRES_DB}
+      ADMIN_API_URL: http://admin:3001
+      ADMIN_INTERNAL_API_TOKEN: ${ADMIN_INTERNAL_API_TOKEN}
+      RAG_INGEST_SERVICE_TOKEN: ${RAG_INGEST_SERVICE_TOKEN}
+      OPENAI_API_KEY: ${RAG_OPENAI_API_KEY}
+      EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL}
+      EMBEDDING_DIMENSION: ${RAG_EMBEDDING_DIMENSION}
+      CHAT_MODEL: ${RAG_CHAT_MODEL}
+      CONTEXT_MODEL: ${RAG_CONTEXT_MODEL}
+      ADMIN_API_TIMEOUT_MS: ${RAG_ADMIN_API_TIMEOUT_MS}
+      CORS_ORIGINS: ${RAG_CORS_ORIGINS}
+      CHUNK_TARGET_TOKENS: ${RAG_CHUNK_TARGET_TOKENS}
+      CHUNK_OVERLAP_TOKENS: ${RAG_CHUNK_OVERLAP_TOKENS}
+      INGESTION_BATCH_SIZE: ${RAG_INGESTION_BATCH_SIZE}
+      RETRIEVAL_LIMIT: ${RAG_RETRIEVAL_LIMIT}
+      CHAT_HISTORY_LIMIT: ${RAG_CHAT_HISTORY_LIMIT}
+    profiles:
+    - ops
+    networks:
+    - dokploy-network
+    image: ${RAG_IMAGE:?set RAG_IMAGE}
+  live-presence:
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Jakarta
+      NODE_ENV: production
+      PORT: 3006
+      ALLOWED_ORIGINS: ${PRESENCE_ALLOWED_ORIGINS}
+    expose:
+    - '3006'
+    read_only: true
+    tmpfs:
+    - /tmp
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    healthcheck:
+      test:
+      - CMD
+      - bun
+      - -e
+      - fetch('http://127.0.0.1:3006/health').then(r=>{if(!r.ok) throw new Error('health')})
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+          cpus: '0.25'
+        reservations:
+          memory: 32m
+          cpus: '0.1'
+    networks:
+    - internal
+    - dokploy-network
+    labels:
+    - traefik.enable=true
+    - traefik.docker.network=dokploy-network
+    - traefik.http.routers.presence-ws.rule=Host(`${ADMIN_DOMAIN}`) && PathPrefix(`/presence`)
+    - traefik.http.routers.presence-ws.entrypoints=websecure
+    - traefik.http.routers.presence-ws.priority=100
+    - traefik.http.routers.presence-ws.tls.certresolver=letsencrypt
+    - traefik.http.routers.presence-ws.service=presence-ws
+    - traefik.http.routers.presence-ws.middlewares=presence-ws-strip
+    - traefik.http.middlewares.presence-ws-strip.stripprefix.prefixes=/presence
+    - traefik.http.services.presence-ws.loadbalancer.server.port=3006
+    image: ${PRESENCE_IMAGE:?set PRESENCE_IMAGE}
+networks:
+  internal:
+    driver: bridge
+  dokploy-network:
+    external: true
