@@ -1,0 +1,30 @@
+http:
+  routers:
+    portfolio-deploy-webhook-admin:
+      rule: "Host(`admin.naufalrf.net`) && PathPrefix(`/deploy-hook`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - portfolio-deploy-webhook-strip
+      service: portfolio-deploy-webhook
+      priority: 1000
+      tls:
+        certResolver: letsencrypt
+    portfolio-deploy-webhook-host:
+      rule: "Host(`deploy.naufalrf.net`)"
+      entryPoints:
+        - websecure
+      service: portfolio-deploy-webhook
+      priority: 1000
+      tls:
+        certResolver: letsencrypt
+  middlewares:
+    portfolio-deploy-webhook-strip:
+      stripPrefix:
+        prefixes:
+          - /deploy-hook
+  services:
+    portfolio-deploy-webhook:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:9010"
