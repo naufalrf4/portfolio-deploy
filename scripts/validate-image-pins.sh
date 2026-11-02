@@ -1,22 +1,20 @@
 #!/usr/bin/env bash
-# Validate the immutable Git SHA image tags used by this deployment candidate.
+# Ensure every app image in the deploy Compose file uses an immutable Git SHA tag.
 set -euo pipefail
 
-IMAGE_ENV_FILE="${1:?usage: validate-image-pins.sh IMAGE_ENV_FILE}"
-required=(ADMIN_IMAGE ADMIN_MIGRATOR_IMAGE RAG_IMAGE PRESENCE_IMAGE)
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COMPOSE_FILE="${1:-$ROOT_DIR/docker-compose.yml}"
+mapfile -t pins < <(grep -E '^[[:space:]]*image: ghcr\.io/naufalrf4/(portfolio-admin|portfolio-admin-migrator|portfolio-rag|portfolio-presence):' "$COMPOSE_FILE")
 
-validate_pin() {
-  local name="$1" value
-  value="$(awk -F= -v key="$name" '$1 == key { sub(/^[^=]*=/, ""); print; found=1; exit } END { if (!found) exit 1 }' "$IMAGE_ENV_FILE")" || {
-    echo "missing image pin: $name in $IMAGE_ENV_FILE" >&2
-    return 1
-  }
-  if [[ ! "$value" =~ ^[^[:space:]@]+:[[:xdigit:]]{40}$ ]]; then
-    echo "image pin must end in a 40-character Git SHA tag: $name" >&2
-    return 1
+if ((${#pins[@]} != 5)); then
+  echo "expected five pinned GHCR image references in $COMPOSE_FILE; found ${#pins[@]}" >&2
+  exit 1
+fi
+
+for entry in "${pins[@]}"; do
+  image="${entry#*: }"
+  if [[ ! "$image" =~ ^ghcr\.io/naufalrf4/[a-z-]+:[[:xdigit:]]{40}$ ]]; then
+    echo "image pin must use a full 40-character Git SHA tag: $image" >&2
+    exit 1
   fi
-}
-
-for name in "${required[@]}"; do
-  validate_pin "$name"
 done

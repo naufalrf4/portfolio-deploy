@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WAIT_TIMEOUT="${PROD_HEALTH_WAIT_TIMEOUT:-240}"
-IMAGE_ENV_FILE="${PROD_IMAGE_ENV_FILE:-$ROOT_DIR/production-images.env}"
 ROLLBACK_FILE="$ROOT_DIR/.docker-prod-rollback.yml"
 ENV_FILE="${PROD_ENV_FILE:-$ROOT_DIR/.env.docker.prod}"
 if [ ! -f "$ENV_FILE" ] && [ -f "$ROOT_DIR/.env" ]; then
@@ -14,11 +13,7 @@ if [ ! -f "$ENV_FILE" ]; then
   echo "production env file not found: set PROD_ENV_FILE or provide .env.docker.prod" >&2
   exit 1
 fi
-if [ ! -f "$IMAGE_ENV_FILE" ]; then
-  echo "production image pins not found: $IMAGE_ENV_FILE" >&2
-  exit 1
-fi
-bash "$ROOT_DIR/scripts/validate-image-pins.sh" "$IMAGE_ENV_FILE"
+bash "$ROOT_DIR/scripts/validate-image-pins.sh"
 
 # Public/Links/NGL are hosted on Cloudflare Pages. Keep their Node containers
 # opt-in as VPS fallbacks; they are not part of the normal production deploy.
@@ -29,26 +24,9 @@ else
   TARGETS=("${ALL_SERVICES[@]}")
 fi
 
-# Schema preparation is part of every Admin/RAG release. Presence-only and
-# scheduler-only updates stay independent of the database migration path.
-NEEDS_MIGRATION=0
-if [ "$#" -eq 0 ]; then
-  NEEDS_MIGRATION=1
-else
-  for svc in "${TARGETS[@]}"; do
-    case "$svc" in
-      admin|rag) NEEDS_MIGRATION=1 ;;
-    esac
-  done
-fi
-if [ "$NEEDS_MIGRATION" -eq 1 ]; then
-  bash "$ROOT_DIR/scripts/docker-prod-migrate.sh"
-fi
-
 compose() {
   docker compose \
     --env-file "$ENV_FILE" \
-    --env-file "$IMAGE_ENV_FILE" \
     -f "$ROOT_DIR/docker-compose.yml" \
     "$@"
 }
@@ -90,7 +68,6 @@ rollback() {
 
   if docker compose \
     --env-file "$ENV_FILE" \
-    --env-file "$IMAGE_ENV_FILE" \
     -f "$ROOT_DIR/docker-compose.yml" \
     -f "$ROLLBACK_FILE" \
     up -d --no-build --wait --wait-timeout "$WAIT_TIMEOUT" "${TARGETS[@]}"; then
