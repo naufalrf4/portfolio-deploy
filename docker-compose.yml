@@ -85,7 +85,7 @@ services:
     - traefik.http.routers.portfolio-admin-websecure.tls.certresolver=letsencrypt
     - traefik.http.routers.portfolio-admin-websecure.service=portfolio-admin
     - traefik.http.services.portfolio-admin.loadbalancer.server.port=3001
-    image: ghcr.io/naufalrf4/portfolio-admin:e84e76765272152432621e1b26def0f9b1d45c9a
+    image: ghcr.io/naufalrf4/portfolio-admin:47ce52bf74b5e3bad1475baa1f7ec7552ecad35d
     depends_on:
       admin-migrate:
         condition: service_completed_successfully
@@ -103,7 +103,7 @@ services:
     depends_on:
       rag-bootstrap:
         condition: service_completed_successfully
-    image: ghcr.io/naufalrf4/portfolio-admin-migrator:e84e76765272152432621e1b26def0f9b1d45c9a
+    image: ghcr.io/naufalrf4/portfolio-admin-migrator:47ce52bf74b5e3bad1475baa1f7ec7552ecad35d
   admin-cron:
     image: docker.io/library/node:22-bookworm-slim
     restart: unless-stopped
